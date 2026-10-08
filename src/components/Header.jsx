@@ -1,0 +1,287 @@
+"use client"
+
+import { Link, NavLink, useNavigate } from "react-router-dom"
+import { Menu, Phone, Mail, Clock, MapPin, User, ChevronDown, Bell } from "lucide-react"
+import { useEffect, useState, useRef } from "react"
+import AuthModal from "./AuthModal"
+import logo from "../Logo/Logo.png" // Import the logo image
+
+const MobileNavLink = ({ to, label, onClick }) => (
+  <NavLink
+    to={to}
+    className={({ isActive }) =>
+      `block px-4 py-2 text-gray-900 hover:text-teal-700 font-medium ${isActive ? "text-teal-700" : ""}`
+    }
+    onClick={onClick}
+  >
+    {label}
+  </NavLink>
+)
+
+export default function Header() {
+  const [hideTopBar, setHideTopBar] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const [isLoggedIn, setIsLoggedIn] = useState(false) // Default to not logged in
+  const userMenuRef = useRef(null)
+  const navigate = useNavigate()
+
+  // Check login status on component mount and when localStorage changes
+  useEffect(() => {
+    // Check if user is logged in from localStorage
+    const checkLoginStatus = () => {
+      const loggedIn = localStorage.getItem("isLoggedIn") === "true"
+      setIsLoggedIn(loggedIn)
+    }
+
+    // Check on initial load
+    checkLoginStatus()
+
+    // Listen for storage events (in case login state changes in another tab)
+    const handleStorageChange = () => {
+      checkLoginStatus()
+    }
+
+    window.addEventListener("storage", handleStorageChange)
+    return () => {
+      window.removeEventListener("storage", handleStorageChange)
+    }
+  }, [])
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+        setUserMenuOpen(false)
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [])
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setHideTopBar(window.scrollY > 50)
+    }
+
+    window.addEventListener("scroll", handleScroll)
+    return () => window.removeEventListener("scroll", handleScroll)
+  }, [])
+
+  const userName = "Preview User"
+
+  const closeMobileMenu = () => {
+    setMobileMenuOpen(false)
+  }
+
+  const handleLogout = () => {
+    // Clear login state in localStorage
+    localStorage.setItem("isLoggedIn", "false")
+    // Clear investment data when logging out
+    localStorage.removeItem("investments")
+    localStorage.setItem("investmentsMade", "false")
+
+    // Trigger storage event for other components to update
+    window.dispatchEvent(new Event("storage"))
+    setIsLoggedIn(false)
+    setUserMenuOpen(false)
+    closeMobileMenu()
+    navigate("/")
+  }
+
+  // Add a new function to handle successful login
+  const handleLoginSuccess = () => {
+    localStorage.setItem("isLoggedIn", "true")
+    setIsLoggedIn(true)
+  }
+
+  return (
+    <header className="w-full">
+      {/* Top Info Bar */}
+      <div
+        className={`bg-teal-900 text-white py-2 fixed top-0 left-0 w-full z-50 transition-transform duration-500 ease-in-out ${
+          hideTopBar ? "-translate-y-full" : "translate-y-0"
+        }`}
+      >
+        <div className="container mx-auto flex flex-wrap justify-between text-sm font-medium px-4">
+          <div className="flex flex-wrap items-center space-x-6">
+            <a href="tel:‪+911234567890‬" className="flex items-center space-x-1 transition-colors">
+              <Phone size={14} />
+              <span>‪+91 1234567890‬</span>
+            </a>
+            <a href="mailto:info@infiniumfinance.com" className="flex items-center space-x-1 transition-colors">
+              <Mail size={14} />
+              <span>info@infiniumfinance.com</span>
+            </a>
+          </div>
+          <div className="hidden md:flex flex-wrap items-center space-x-6">
+            <div className="flex items-center space-x-1">
+              <Clock size={14} />
+              <span>Mon-Fri: 9:00 AM - 6:00 PM</span>
+            </div>
+            <div className="flex items-center space-x-1">
+              <MapPin size={14} />
+              <span>Ahmedabad, Maharashtra</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Navigation */}
+      <nav
+        className={`w-full h-[76px] bg-white transition-all duration-500 ease-in-out ${
+          hideTopBar ? "shadow-md py-2 mt-0 fixed top-0 left-0 right-0 z-40" : "py-2 mt-[38px]"
+        }`}
+      >
+        <div className="container mx-auto flex justify-between items-center px-4">
+          {/* Logo */}
+          <div className="flex items-center">
+            <Link to="/">
+              <img
+                src={logo}
+                alt="Infinium Finance Logo"
+                  className="h-[58px] w-auto object-contain transition-transform duration-300 hover:scale-[1.03] cursor-pointer"
+              />
+            </Link>
+          </div>
+
+          {/* Desktop Links */}
+          <div className="hidden lg:flex items-center space-x-8 text-md font-bold leading-6 text-gray-900">
+            {[
+              { to: "/", label: "Home" },
+              { to: "/about", label: "About Us" },
+              { to: "/plans", label: "Investment Plans" },
+              { to: "/how-it-works", label: "How It Works" },
+              { to: "/calculator", label: "Calculator" },
+              { to: "/faqs", label: "FAQs" },
+              { to: "/contact", label: "Contact" },
+            ].map((link) => (
+              <NavLink
+                key={link.to}
+                to={link.to}
+                className={({ isActive }) =>
+                  `relative group text-gray-900 hover:text-teal-700 font-medium ${isActive ? "text-teal-700" : ""}`
+                }
+              >
+                {link.label}
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-teal-700 transition-all duration-300 group-hover:w-full"></span>
+              </NavLink>
+            ))}
+          </div>
+
+          {/* User Menu or Auth Button */}
+          <div className="flex items-center">
+            {isLoggedIn ? (
+              <div className="relative" ref={userMenuRef}>
+                <button
+                  className="flex items-center space-x-2 text-gray-900 hover:text-teal-700 font-medium"
+                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                >
+                  <div className="relative">
+                    <Bell size={20} className="mr-2" />
+                    <span className="absolute top-0 right-0 h-2 w-2 bg-red-500 rounded-full"></span>
+                  </div>
+                  <User size={20} />
+                  <span className="hidden md:inline">{userName}</span>
+                  <ChevronDown size={16} className={`transition-transform ${userMenuOpen ? "rotate-180" : ""}`} />
+                </button>
+
+                {userMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-200">
+                    <Link
+                      to="/dashboard"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      onClick={() => setUserMenuOpen(false)}
+                    >
+                      Dashboard
+                    </Link>
+                    <Link
+                      to="/profile"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      onClick={() => setUserMenuOpen(false)}
+                    >
+                      Profile
+                    </Link>
+                    <Link
+                      to="/my-investments"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      onClick={() => setUserMenuOpen(false)}
+                    >
+                      My Investments
+                    </Link>
+                    <Link
+                      to="/bank-details"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      onClick={() => setUserMenuOpen(false)}
+                    >
+                      Bank Details
+                    </Link>
+                    <div className="border-t border-gray-100 my-1"></div>
+                    <button
+                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      onClick={handleLogout}
+                    >
+                      Logout
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <AuthModal onLoginSuccess={handleLoginSuccess} />
+            )}
+
+            {/* Mobile Menu Button */}
+            <button
+              className="ml-4 lg:hidden p-2 text-gray-500 hover:text-teal-700"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label="Toggle menu"
+            >
+              <Menu size={24} />
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile Menu */}
+        {mobileMenuOpen && (
+          <div className="lg:hidden border-t border-gray-200 mt-2">
+            <div className="flex flex-col space-y-1 py-3 px-4">
+              <MobileNavLink to="/" label="Home" onClick={closeMobileMenu} />
+              <MobileNavLink to="/about" label="About Us" onClick={closeMobileMenu} />
+              <MobileNavLink to="/plans" label="Investment Plans" onClick={closeMobileMenu} />
+              <MobileNavLink to="/how-it-works" label="How It Works" onClick={closeMobileMenu} />
+              <MobileNavLink to="/calculator" label="Calculator" onClick={closeMobileMenu} />
+              <MobileNavLink to="/faqs" label="FAQs" onClick={closeMobileMenu} />
+              <MobileNavLink to="/contact" label="Contact" onClick={closeMobileMenu} />
+
+              {isLoggedIn ? (
+                <>
+                  <div className="border-t border-gray-200 my-2 pt-2">
+                    <p className="px-4 py-1 text-xs font-semibold text-gray-500 uppercase">Account</p>
+                    <MobileNavLink to="/dashboard" label="Dashboard" onClick={closeMobileMenu} />
+                    <MobileNavLink to="/profile" label="Profile" onClick={closeMobileMenu} />
+                    <MobileNavLink to="/my-investments" label="My Investments" onClick={closeMobileMenu} />
+                    <MobileNavLink to="/bank-details" label="Bank Details" onClick={closeMobileMenu} />
+                    <button
+                      className="block w-full text-left px-4 py-2 text-gray-900 hover:text-teal-700 font-medium"
+                      onClick={handleLogout}
+                    >
+                      Logout
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="pt-2 border-t border-gray-200 my-2">
+                  <AuthModal onLoginSuccess={handleLoginSuccess} />
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </nav>
+    </header>
+  )
+}
+
